@@ -9,3 +9,5 @@ statsmodels
 xgboost
 seaborn
 jupyter
+plotly
+streamlit
