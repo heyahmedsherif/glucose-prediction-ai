@@ -42,6 +42,13 @@ Our AI models achieve **medical-grade accuracy**:
 
 ## 🔬 The Data Behind the Models
 
+### Data Source: CGMacros Dataset
+This system is built using the **CGMacros dataset**, a comprehensive scientific dataset for personalized nutrition research developed by the Phenotype Science Initiative (PSI) at Texas A&M University.
+
+**Original Dataset:** [CGMacros - A scientific dataset for personalized nutrition and diet monitoring](https://github.com/PSI-TAMU/CGMacros/tree/main)
+
+**Citation:** If you use this system or reference this work, please cite the original CGMacros dataset creators.
+
 ### Real-World Data Collection
 - **1,269 real meals** from **42 different people**
 - **Continuous glucose monitoring** data collected every minute for 3+ hours after each meal

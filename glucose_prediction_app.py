@@ -173,8 +173,10 @@ def main():
     st.markdown("""
     **Predict your blood glucose response after eating a meal**
     
-    This app uses machine learning models trained on continuous glucose monitoring data 
-    to predict how your blood glucose will respond to different meals over time.
+    This app uses machine learning models trained on the CGMacros dataset - continuous glucose monitoring data 
+    from 42 individuals with 1,269 meals to predict how your blood glucose will respond to different meals over time.
+    
+    *Built using the [CGMacros scientific dataset](https://github.com/PSI-TAMU/CGMacros/tree/main) for personalized nutrition research.*
     """)
     
     # Sidebar for inputs
@@ -384,6 +386,9 @@ def main():
     Always consult with healthcare providers for diabetes management decisions.
     
     **📚 Model:** Trained on CGMacros dataset with RandomForest algorithms achieving 14-25 mg/dL prediction accuracy.
+    
+    **📊 Data Source:** This application uses the [CGMacros dataset](https://github.com/PSI-TAMU/CGMacros/tree/main) - 
+    A scientific dataset for personalized nutrition and diet monitoring developed by the Phenotype Science Initiative (PSI) at Texas A&M University.
     """)
 
 if __name__ == "__main__":
