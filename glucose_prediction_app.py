@@ -66,16 +66,9 @@ def predict_glucose(input_features: Dict[str, Any], models, scalers, metadata) -
     feature_sets = metadata['feature_sets']
     predictions = {}
     
-    # Debug: Show loaded feature sets
-    st.info(f"Debug: Loaded feature sets for first model: {list(feature_sets.values())[0]}")
-    
     for target_var in feature_sets.keys():
         # Get required features
         required_features = feature_sets[target_var]
-        
-        # Debug: Show what we're looking for vs what we have
-        st.write(f"Debug {target_var}: Required features: {required_features}")
-        st.write(f"Debug {target_var}: Available features: {list(input_features.keys())}")
         
         # Extract feature values
         feature_values = []
@@ -98,8 +91,6 @@ def predict_glucose(input_features: Dict[str, Any], models, scalers, metadata) -
                         feature_values.append(8.0)  # Normal fasting insulin
                 else:
                     st.error(f"Required feature '{feature}' missing for {target_var} prediction")
-                    st.error(f"Debug: Required features: {required_features}")
-                    st.error(f"Debug: Input features: {list(input_features.keys())}")
                     return {}
         
         # Make prediction
