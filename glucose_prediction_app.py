@@ -41,6 +41,12 @@ def load_models():
     with open(metadata_path, 'r') as f:
         metadata = json.load(f)
     
+    # Check if this is the new A1C-based model
+    if 'pipeline_version' in metadata and metadata['pipeline_version'] == '2.0.0':
+        st.success("✅ Using A1C-based models (v2.0.0)")
+    else:
+        st.warning("⚠️ Using older model version")
+    
     # Load models and scalers
     models = {}
     scalers = {}
@@ -60,9 +66,16 @@ def predict_glucose(input_features: Dict[str, Any], models, scalers, metadata) -
     feature_sets = metadata['feature_sets']
     predictions = {}
     
+    # Debug: Show loaded feature sets
+    st.info(f"Debug: Loaded feature sets for first model: {list(feature_sets.values())[0]}")
+    
     for target_var in feature_sets.keys():
         # Get required features
         required_features = feature_sets[target_var]
+        
+        # Debug: Show what we're looking for vs what we have
+        st.write(f"Debug {target_var}: Required features: {required_features}")
+        st.write(f"Debug {target_var}: Available features: {list(input_features.keys())}")
         
         # Extract feature values
         feature_values = []
@@ -85,6 +98,8 @@ def predict_glucose(input_features: Dict[str, Any], models, scalers, metadata) -
                         feature_values.append(8.0)  # Normal fasting insulin
                 else:
                     st.error(f"Required feature '{feature}' missing for {target_var} prediction")
+                    st.error(f"Debug: Required features: {required_features}")
+                    st.error(f"Debug: Input features: {list(input_features.keys())}")
                     return {}
         
         # Make prediction
@@ -278,6 +293,11 @@ def main():
     # Prediction button
     st.sidebar.markdown("---")
     predict_button = st.sidebar.button("🔮 Predict Glucose Response", type="primary")
+    
+    # Debug: Cache clearing button
+    if st.sidebar.button("🔄 Clear Model Cache", help="Clear cached models and reload fresh ones"):
+        st.cache_resource.clear()
+        st.rerun()
     
     # Main content area
     if predict_button:
