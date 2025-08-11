@@ -4,7 +4,7 @@
 
 We've developed an web application that predicts how your blood glucose (sugar) levels will change after eating a meal. This technology can help people with diabetes, pre-diabetes, or anyone interested in understanding their metabolic response to food make better dietary decisions.
 
-**Key Achievement:** Our models can predict blood glucose levels with **14-25 mg/dL accuracy** at different time points after eating - comparable to the precision of medical-grade glucose monitors.
+**Key Achievement:** Our models can predict blood glucose levels with **34-42 mg/dL accuracy** at different time points after eating using A1C-based personalized modeling - providing valuable insights for meal planning and glucose management.
 
 ---
 
@@ -26,17 +26,17 @@ We've developed an web application that predicts how your blood glucose (sugar) 
 
 ## 📊 How Accurate Is It?
 
-Our AI models achieve **medical-grade accuracy**:
+Our A1C-based AI models achieve **clinically useful accuracy**:
 
 | Time After Eating | Prediction Accuracy | Clinical Assessment |
 |-------------------|--------------------|--------------------|
-| **30 minutes** | ±14.4 mg/dL | ⭐⭐⭐⭐⭐ Excellent |
-| **1 hour** | ±21.6 mg/dL | ⭐⭐⭐⭐⭐ Excellent |
-| **1.5 hours** | ±24.9 mg/dL | ⭐⭐⭐⭐ Very Good |
-| **2 hours** | ±24.3 mg/dL | ⭐⭐⭐⭐ Very Good |
-| **3 hours** | ±22.3 mg/dL | ⭐⭐⭐ Good |
+| **30 minutes** | ±34.7 mg/dL | ⭐⭐⭐ Good |
+| **1 hour** | ±41.3 mg/dL | ⭐⭐⭐ Good |
+| **1.5 hours** | ±40.1 mg/dL | ⭐⭐⭐ Good |
+| **2 hours** | ±38.5 mg/dL | ⭐⭐⭐ Good |
+| **3 hours** | ±37.2 mg/dL | ⭐⭐⭐ Good |
 
-**Context:** Medical glucose meters typically have ±15-20 mg/dL accuracy, so our predictions are competitive with actual measurements.
+**Context:** These A1C-based predictions provide valuable trend insights for meal planning, though they are guidance tools rather than precise measurements.
 
 ---
 
@@ -85,9 +85,9 @@ Each model focuses on its specific time period for maximum accuracy.
 
 ### Step 3: Smart Feature Selection
 The AI automatically determines which information is most important for each time period:
-- **30-minute predictions**: Relies heavily on meal composition + your activity level
-- **60-120 minute predictions**: Focuses on your personal characteristics (age, BMI, baseline glucose)
-- **180-minute predictions**: Considers both meal and activity factors for long-term response
+- **30-minute predictions**: Relies heavily on meal composition + your A1C and biomarkers
+- **60-120 minute predictions**: Focuses on your personal characteristics (age, BMI, A1C) and meal composition
+- **180-minute predictions**: Considers meal composition, A1C, and activity factors for long-term response
 
 ### Algorithm Choice: Random Forest
 - **Why Random Forest?** It consistently outperformed other AI approaches
@@ -95,24 +95,31 @@ The AI automatically determines which information is most important for each tim
 - **Benefits:** Robust, handles missing data well, provides reliable confidence estimates
 - **Alternative tested:** XGBoost (another popular AI method) but Random Forest performed better
 
+### A1C-Based Modeling Approach
+- **Why A1C over real-time glucose?** A1C provides a stable 3-month average, reducing variability from momentary factors
+- **Clinical relevance:** A1C is the gold standard biomarker for diabetes management and glucose control
+- **User convenience:** No need for finger-stick tests or continuous glucose monitoring
+- **Personalization:** A1C captures individual metabolic baseline better than single glucose readings
+- **Stability:** Less affected by stress, illness, medication timing, or measurement errors
+
 ---
 
 ## 📋 What Information Do You Need to Provide?
 
 ### Required Inputs (Always Needed)
 1. **Personal Info**: Age, gender, height, weight
-2. **Current glucose level**: A single finger-stick reading before eating
+2. **A1C level**: Your 3-month average blood glucose (from lab work or home test)
 3. **Meal composition**: Carbs, protein, fat, fiber, and total calories
 
 ### Optional Inputs (Improve Accuracy)
-4. **Blood biomarkers**: A1C, fasting glucose, fasting insulin (from lab work)
+4. **Additional biomarkers**: Fasting glucose and fasting insulin (from lab work)
 5. **Activity data**: Steps taken and heart rate around meal time
 
 ### How to Get This Information
 - **Personal info**: You already know this
-- **Current glucose**: $20 glucose meter from any pharmacy
+- **A1C level**: Annual physical, diabetes screening, or home A1C test kits (~$25)
 - **Meal composition**: Food labels, nutrition apps (MyFitnessPal), or our meal presets
-- **Biomarkers**: Annual physical or diabetes screening
+- **Additional biomarkers**: Annual physical or diabetes screening
 - **Activity**: Any fitness tracker, smartphone, or smartwatch
 
 ---
@@ -167,9 +174,10 @@ The AI automatically determines which information is most important for each tim
 ### Model Training Process
 1. **Data preprocessing**: Clean and standardize all measurements
 2. **Feature engineering**: Calculate derived metrics (BMI, meal ratios, activity summaries)
-3. **Cross-validation**: Test models on unseen people to ensure generalization
-4. **Hyperparameter tuning**: Optimize model settings for best performance
-5. **Model selection**: Choose best-performing algorithm for each time point
+3. **A1C-based modeling**: Replace real-time glucose with stable A1C biomarker
+4. **Cross-validation**: Test models on unseen people to ensure generalization
+5. **Hyperparameter tuning**: Optimize model settings for best performance
+6. **Model selection**: Choose best-performing algorithm for each time point
 
 ### Deployment Architecture
 - **Production models**: Saved as optimized files for fast loading
