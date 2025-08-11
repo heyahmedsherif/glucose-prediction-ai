@@ -40,10 +40,10 @@ def create_feature_sets(df: pd.DataFrame) -> dict:
     
     # Core features (always available)
     core_features = ['carbohydrates', 'protein', 'fat', 'fiber', 'calories', 
-                    'age', 'gender', 'bmi', 'baseline']
+                    'age', 'gender', 'bmi', 'a1c']
     
     # Optional biomarker features  
-    biomarker_features = ['a1c', 'fasting_glucose', 'fasting_insulin']
+    biomarker_features = ['fasting_glucose', 'fasting_insulin']
     
     # Optional activity/steps features
     activity_features = ['steps_total', 'steps_mean_per_minute', 'steps_max_per_minute', 
@@ -70,8 +70,12 @@ def prepare_features(df: pd.DataFrame, feature_columns: list) -> pd.DataFrame:
         if col in X.columns and X[col].isna().any():
             X[col].fillna(X[col].median(), inplace=True)
     
-    # For biomarker features, use median imputation (these are often missing)
-    biomarker_cols = ['a1c', 'fasting_glucose', 'fasting_insulin']
+    # For A1C (now core feature), use median imputation
+    if 'a1c' in X.columns and X['a1c'].isna().any():
+        X['a1c'].fillna(X['a1c'].median(), inplace=True)
+    
+    # For optional biomarker features, use median imputation (these are often missing)
+    biomarker_cols = ['fasting_glucose', 'fasting_insulin']
     for col in biomarker_cols:
         if col in X.columns and X[col].isna().any():
             X[col].fillna(X[col].median(), inplace=True)
@@ -215,14 +219,14 @@ def main():
         print(f"  {target_var}: {valid_pct:.1f}% valid")
     
     print(f"\nCore features completeness:")
-    core_features = ['carbohydrates', 'protein', 'fat', 'fiber', 'calories', 'age', 'gender', 'bmi']
+    core_features = ['carbohydrates', 'protein', 'fat', 'fiber', 'calories', 'age', 'gender', 'bmi', 'a1c']
     for feature in core_features:
         if feature in df.columns:
             valid_pct = (df[feature].notna().sum() / len(df)) * 100
             print(f"  {feature}: {valid_pct:.1f}% valid")
     
     print(f"\nOptional biomarkers completeness:")
-    biomarker_features = ['a1c', 'fasting_glucose', 'fasting_insulin']
+    biomarker_features = ['fasting_glucose', 'fasting_insulin']
     for feature in biomarker_features:
         if feature in df.columns:
             valid_pct = (df[feature].notna().sum() / len(df)) * 100

@@ -9,12 +9,9 @@
       "age",
       "gender",
       "bmi",
-      "baseline",
-      "steps_total",
-      "steps_mean_per_minute",
-      "steps_max_per_minute",
-      "active_minutes",
-      "hr_mean"
+      "a1c",
+      "fasting_glucose",
+      "fasting_insulin"
     ],
     "glucose_60min": [
       "carbohydrates",
@@ -25,7 +22,9 @@
       "age",
       "gender",
       "bmi",
-      "baseline"
+      "a1c",
+      "fasting_glucose",
+      "fasting_insulin"
     ],
     "glucose_90min": [
       "carbohydrates",
@@ -36,7 +35,9 @@
       "age",
       "gender",
       "bmi",
-      "baseline"
+      "a1c",
+      "fasting_glucose",
+      "fasting_insulin"
     ],
     "glucose_120min": [
       "carbohydrates",
@@ -47,7 +48,7 @@
       "age",
       "gender",
       "bmi",
-      "baseline"
+      "a1c"
     ],
     "glucose_180min": [
       "carbohydrates",
@@ -58,7 +59,7 @@
       "age",
       "gender",
       "bmi",
-      "baseline",
+      "a1c",
       "steps_total",
       "steps_mean_per_minute",
       "steps_max_per_minute",
@@ -69,8 +70,8 @@
   "model_info": {
     "glucose_30min": {
       "target": "glucose_30min",
-      "n_samples": 1214,
-      "n_features": 14,
+      "n_samples": 1265,
+      "n_features": 11,
       "feature_names": [
         "carbohydrates",
         "protein",
@@ -80,21 +81,19 @@
         "age",
         "gender",
         "bmi",
-        "baseline",
-        "steps_total",
-        "steps_mean_per_minute",
-        "steps_max_per_minute",
-        "active_minutes",
-        "hr_mean"
+        "a1c",
+        "fasting_glucose",
+        "fasting_insulin"
       ],
-      "mae": 14.366290809327847,
-      "r2_score": 0.7755115399060611,
-      "training_date": "2025-08-10T11:08:48.056912"
+      "mae": 34.680651161753914,
+      "mae_std": 3.64830138181125,
+      "r2_score": 0.87709253002999,
+      "training_date": "2025-08-11T09:56:32.277453"
     },
     "glucose_60min": {
       "target": "glucose_60min",
       "n_samples": 1265,
-      "n_features": 9,
+      "n_features": 11,
       "feature_names": [
         "carbohydrates",
         "protein",
@@ -104,16 +103,19 @@
         "age",
         "gender",
         "bmi",
-        "baseline"
+        "a1c",
+        "fasting_glucose",
+        "fasting_insulin"
       ],
-      "mae": 21.552266139657444,
-      "r2_score": 0.6822702195572767,
-      "training_date": "2025-08-10T11:08:48.173113"
+      "mae": 41.27210818890693,
+      "mae_std": 2.289579217196459,
+      "r2_score": 0.876331742410339,
+      "training_date": "2025-08-11T09:56:34.222119"
     },
     "glucose_90min": {
       "target": "glucose_90min",
       "n_samples": 1265,
-      "n_features": 9,
+      "n_features": 11,
       "feature_names": [
         "carbohydrates",
         "protein",
@@ -123,15 +125,18 @@
         "age",
         "gender",
         "bmi",
-        "baseline"
+        "a1c",
+        "fasting_glucose",
+        "fasting_insulin"
       ],
-      "mae": 24.86698682476943,
-      "r2_score": 0.5740575519403384,
-      "training_date": "2025-08-10T11:08:48.287564"
+      "mae": 40.07908780296473,
+      "mae_std": 2.5046501388612494,
+      "r2_score": 0.8581220418426835,
+      "training_date": "2025-08-11T09:56:36.225105"
     },
     "glucose_120min": {
       "target": "glucose_120min",
-      "n_samples": 1262,
+      "n_samples": 1263,
       "n_features": 9,
       "feature_names": [
         "carbohydrates",
@@ -142,15 +147,16 @@
         "age",
         "gender",
         "bmi",
-        "baseline"
+        "a1c"
       ],
-      "mae": 24.301688010540186,
-      "r2_score": 0.48373972791567077,
-      "training_date": "2025-08-10T11:08:48.419250"
+      "mae": 38.506118818361,
+      "mae_std": 4.295606585495667,
+      "r2_score": 0.8563532414561984,
+      "training_date": "2025-08-11T09:56:38.002522"
     },
     "glucose_180min": {
       "target": "glucose_180min",
-      "n_samples": 1211,
+      "n_samples": 1263,
       "n_features": 14,
       "feature_names": [
         "carbohydrates",
@@ -161,18 +167,19 @@
         "age",
         "gender",
         "bmi",
-        "baseline",
+        "a1c",
         "steps_total",
         "steps_mean_per_minute",
         "steps_max_per_minute",
         "active_minutes",
         "hr_mean"
       ],
-      "mae": 22.30695473251028,
-      "r2_score": 0.26308591379337865,
-      "training_date": "2025-08-10T11:08:48.577083"
+      "mae": 37.224545165629074,
+      "mae_std": 3.9133742627236647,
+      "r2_score": 0.936669903533358,
+      "training_date": "2025-08-11T09:56:41.164585"
     }
   },
-  "pipeline_version": "1.0.0",
-  "created_date": "2025-08-10T11:08:48.707678"
+  "pipeline_version": "2.0.0",
+  "created_date": "2025-08-11T09:56:41.164597"
 }

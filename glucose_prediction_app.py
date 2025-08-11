@@ -75,6 +75,14 @@ def predict_glucose(input_features: Dict[str, Any], models, scalers, metadata) -
                     feature_values.append(0)  # Default for activity features
                 elif feature == 'hr_mean':
                     feature_values.append(75)  # Default resting heart rate
+                elif feature in ['a1c', 'fasting_glucose', 'fasting_insulin']:
+                    # Use median values for missing biomarkers
+                    if feature == 'a1c':
+                        feature_values.append(5.7)  # Normal A1C
+                    elif feature == 'fasting_glucose':
+                        feature_values.append(95)  # Normal fasting glucose
+                    else:  # fasting_insulin
+                        feature_values.append(8.0)  # Normal fasting insulin
                 else:
                     st.error(f"Required feature '{feature}' missing for {target_var} prediction")
                     return {}
@@ -87,17 +95,17 @@ def predict_glucose(input_features: Dict[str, Any], models, scalers, metadata) -
     
     return predictions
 
-def create_glucose_curve_plot(predictions: Dict[str, float], baseline: float):
+def create_glucose_curve_plot(predictions: Dict[str, float], estimated_baseline: float = None):
     """Create an interactive plot of the glucose response curve."""
     
     # Extract time points and glucose values
-    time_points = [0, 30, 60, 90, 120, 180]  # minutes
-    glucose_values = [baseline]  # Start with baseline
+    time_points = [30, 60, 90, 120, 180]  # minutes (no baseline since we don't predict from current glucose)
+    glucose_values = []
     
     # Add predictions in order
     for minutes in [30, 60, 90, 120, 180]:
         target_var = f"glucose_{minutes}min"
-        glucose_values.append(predictions.get(target_var, baseline))
+        glucose_values.append(predictions.get(target_var, 100))  # Default fallback
     
     # Create the plot
     fig = go.Figure()
@@ -139,27 +147,32 @@ def create_glucose_curve_plot(predictions: Dict[str, float], baseline: float):
     
     return fig
 
-def create_summary_metrics(predictions: Dict[str, float], baseline: float):
+def create_summary_metrics(predictions: Dict[str, float]):
     """Create summary metrics for the prediction."""
     
-    glucose_values = [baseline] + [predictions[f"glucose_{m}min"] for m in [30, 60, 90, 120, 180]]
+    glucose_values = [predictions[f"glucose_{m}min"] for m in [30, 60, 90, 120, 180]]
+    time_points = [30, 60, 90, 120, 180]
     
     peak_glucose = max(glucose_values)
-    peak_time = glucose_values.index(peak_glucose) * 30  # Convert index to minutes
-    glucose_rise = peak_glucose - baseline
-    time_to_baseline = 180  # Default to 3 hours
+    peak_index = glucose_values.index(peak_glucose)
+    peak_time = time_points[peak_index]
     
-    # Find when glucose returns close to baseline
-    for i, glucose in enumerate(glucose_values[1:], 1):
-        if glucose <= baseline + 10:  # Within 10 mg/dL of baseline
-            time_to_baseline = i * 30
+    # Calculate glucose variability
+    glucose_range = max(glucose_values) - min(glucose_values)
+    
+    # Find when glucose stabilizes (difference between consecutive readings < 10 mg/dL)
+    stabilization_time = 180  # Default
+    for i in range(1, len(glucose_values)):
+        if abs(glucose_values[i] - glucose_values[i-1]) < 10:
+            stabilization_time = time_points[i]
             break
     
     return {
         'peak_glucose': peak_glucose,
         'peak_time': peak_time,
-        'glucose_rise': glucose_rise,
-        'time_to_baseline': time_to_baseline
+        'glucose_range': glucose_range,
+        'stabilization_time': stabilization_time,
+        'min_glucose': min(glucose_values)
     }
 
 def main():
@@ -193,13 +206,14 @@ def main():
     bmi = weight_kg / (height_cm / 100) ** 2
     st.sidebar.info(f"📊 BMI: {bmi:.1f}")
     
-    # Current glucose level
-    st.sidebar.subheader("🩸 Current Glucose")
-    baseline_glucose = st.sidebar.number_input(
-        "Current blood glucose (mg/dL)", 
-        min_value=60, max_value=200, value=95, step=1,
-        help="Your current blood glucose level before eating"
+    # A1C level
+    st.sidebar.subheader("🩸 A1C Level")
+    a1c = st.sidebar.number_input(
+        "A1C (%) - 3-month average blood glucose", 
+        min_value=4.0, max_value=15.0, value=5.7, step=0.1,
+        help="Your A1C level (hemoglobin A1C) - a measure of average blood glucose over the past 3 months"
     )
+    st.sidebar.info(f"📊 Estimated avg glucose: {((a1c * 28.7) - 46.7):.0f} mg/dL")
     
     # Meal Information
     st.sidebar.subheader("🍽️ Meal Information")
@@ -277,7 +291,7 @@ def main():
             'age': float(age),
             'gender': 1.0 if gender == "Male" else 0.0,
             'bmi': float(bmi),
-            'baseline': float(baseline_glucose),
+            'a1c': float(a1c),
             'steps_total': float(steps_total),
             'steps_mean_per_minute': float(steps_mean_per_minute),
             'steps_max_per_minute': float(steps_max_per_minute),
@@ -295,18 +309,19 @@ def main():
             
             with col1:
                 # Plot glucose curve
-                fig = create_glucose_curve_plot(predictions, baseline_glucose)
+                fig = create_glucose_curve_plot(predictions)
                 st.plotly_chart(fig, use_container_width=True)
             
             with col2:
                 # Summary metrics
-                metrics = create_summary_metrics(predictions, baseline_glucose)
+                metrics = create_summary_metrics(predictions)
                 
                 st.subheader("📊 Summary")
-                st.metric("Peak Glucose", f"{metrics['peak_glucose']:.1f} mg/dL", 
-                         f"+{metrics['glucose_rise']:.1f} from baseline")
+                st.metric("Peak Glucose", f"{metrics['peak_glucose']:.1f} mg/dL")
                 st.metric("Time to Peak", f"{metrics['peak_time']} minutes")
-                st.metric("Return to Baseline", f"~{metrics['time_to_baseline']} minutes")
+                st.metric("Glucose Range", f"{metrics['glucose_range']:.1f} mg/dL", 
+                         f"{metrics['min_glucose']:.1f} - {metrics['peak_glucose']:.1f}")
+                st.metric("Stabilization Time", f"~{metrics['stabilization_time']} minutes")
                 
                 # Risk assessment
                 if metrics['peak_glucose'] < 140:
@@ -323,11 +338,10 @@ def main():
             for minutes in [30, 60, 90, 120, 180]:
                 target_var = f"glucose_{minutes}min"
                 glucose = predictions.get(target_var, 0)
-                change = glucose - baseline_glucose
                 pred_data.append({
-                    "Time": f"{minutes} minutes",
+                    "Time After Meal": f"{minutes} minutes",
                     "Predicted Glucose (mg/dL)": f"{glucose:.1f}",
-                    "Change from Baseline": f"{change:+.1f}" if change >= 0 else f"{change:.1f}"
+                    "Risk Level": "Normal" if glucose < 140 else "Elevated" if glucose < 180 else "High"
                 })
             
             df = pd.DataFrame(pred_data)
@@ -353,7 +367,7 @@ def main():
         
         **Required Information:**
         - Personal details (age, gender, height, weight)
-        - Current blood glucose level
+        - A1C level (3-month average blood glucose)
         - Meal composition (carbs, protein, fat, fiber, calories)
         
         **Optional:**
@@ -362,8 +376,8 @@ def main():
         
         # Show example visualization
         st.subheader("📈 Example Glucose Response")
-        example_times = [0, 30, 60, 90, 120, 180]
-        example_glucose = [95, 120, 135, 125, 110, 100]
+        example_times = [30, 60, 90, 120, 180]
+        example_glucose = [120, 135, 125, 110, 100]
         
         fig = go.Figure()
         fig.add_trace(go.Scatter(
@@ -385,7 +399,7 @@ def main():
     **⚠️ Disclaimer:** This app is for educational purposes only and should not replace professional medical advice. 
     Always consult with healthcare providers for diabetes management decisions.
     
-    **📚 Model:** Trained on CGMacros dataset with RandomForest algorithms achieving 14-25 mg/dL prediction accuracy.
+    **📚 Model:** Trained on CGMacros dataset with RandomForest algorithms achieving 34-42 mg/dL prediction accuracy using A1C-based modeling.
     
     **📊 Data Source:** This application uses the [CGMacros dataset](https://github.com/PSI-TAMU/CGMacros/tree/main) - 
     A scientific dataset for personalized nutrition and diet monitoring developed by the Phenotype Science Initiative (PSI) at Texas A&M University.

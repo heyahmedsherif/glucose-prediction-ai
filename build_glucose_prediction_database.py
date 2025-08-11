@@ -104,13 +104,6 @@ def extract_glucose_response_at_intervals(glucose_series: pd.Series, timestamp_s
     """
     glucose_responses = {}
     
-    # Get baseline glucose (at meal time)
-    meal_idx = timestamp_series.searchsorted(meal_timestamp)
-    if meal_idx < len(glucose_series):
-        glucose_responses['baseline'] = glucose_series.iloc[meal_idx]
-    else:
-        glucose_responses['baseline'] = np.nan
-    
     # Extract glucose at each interval
     for interval in intervals:
         target_time = meal_timestamp + timedelta(minutes=interval)
@@ -401,7 +394,7 @@ def validate_training_data(df: pd.DataFrame) -> Dict[str, Any]:
     
     # Value ranges
     validation_results['value_ranges'] = {}
-    for var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min', 'baseline']:
+    for var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min']:
         if var in df.columns:
             validation_results['value_ranges'][var] = {
                 'min': df[var].min(),
