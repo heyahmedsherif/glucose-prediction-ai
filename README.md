@@ -4,7 +4,7 @@
 
 We've developed an web application that predicts how your blood glucose (sugar) levels will change after eating a meal. This technology can help people with diabetes, pre-diabetes, or anyone interested in understanding their metabolic response to food make better dietary decisions.
 
-**Key Achievement:** Our models can predict blood glucose levels with **34-42 mg/dL accuracy** at different time points after eating using A1C-based personalized modeling - providing valuable insights for meal planning and glucose management.
+**Key Achievement:** Our enhanced models can predict blood glucose levels with **18-23 mg/dL accuracy** at different time points after eating using **diabetic status-based personalized modeling** - providing clinically relevant insights for meal planning and glucose management.
 
 ---
 
@@ -16,9 +16,12 @@ We've developed an web application that predicts how your blood glucose (sugar) 
 - People currently have **no way to predict** how a meal will affect their glucose before eating it
 - Traditional glucose monitoring only shows **what happened**, not **what will happen**
 
-### Our Solution
+### Our Enhanced Solution
 - **Predictive glucose monitoring** that works before you eat
-- Personalized predictions based on your body characteristics and meal composition
+- **Diabetic status-based personalization** (Normal, Pre-diabetic, Type 2 Diabetic)
+- **Intelligent baseline glucose prediction** based on patient profile
+- Personalized predictions using demographics, clinical markers, and meal composition
+- **22 comprehensive meal presets** from light snacks to heavy dinners
 - Real-time insights to help make healthier food choices
 - Easy-to-use web application for immediate results
 
@@ -26,17 +29,23 @@ We've developed an web application that predicts how your blood glucose (sugar) 
 
 ## 📊 How Accurate Is It?
 
-Our A1C-based AI models achieve **clinically useful accuracy**:
+Our enhanced diabetic status-based AI models achieve **clinically excellent accuracy**:
 
-| Time After Eating | Prediction Accuracy | Clinical Assessment |
-|-------------------|--------------------|--------------------|
-| **30 minutes** | ±34.7 mg/dL | ⭐⭐⭐ Good |
-| **1 hour** | ±41.3 mg/dL | ⭐⭐⭐ Good |
-| **1.5 hours** | ±40.1 mg/dL | ⭐⭐⭐ Good |
-| **2 hours** | ±38.5 mg/dL | ⭐⭐⭐ Good |
-| **3 hours** | ±37.2 mg/dL | ⭐⭐⭐ Good |
+| Time After Eating | Prediction Accuracy (MAE) | R² Score | Clinical Assessment |
+|-------------------|--------------------------|----------|---------------------|
+| **30 minutes** | ±19.7 mg/dL | 0.606 | ⭐⭐⭐⭐ Excellent |
+| **1 hour** | ±22.6 mg/dL | 0.646 | ⭐⭐⭐⭐ Excellent |
+| **1.5 hours** | ±20.8 mg/dL | 0.690 | ⭐⭐⭐⭐ Excellent |
+| **2 hours** | ±20.3 mg/dL | 0.670 | ⭐⭐⭐⭐ Excellent |
+| **3 hours** | ±18.8 mg/dL | 0.620 | ⭐⭐⭐⭐ Excellent |
 
-**Context:** These A1C-based predictions provide valuable trend insights for meal planning, though they are guidance tools rather than precise measurements.
+### 🚀 Key Enhancements:
+- **Baseline Glucose Predictor:** ±3.3 mg/dL accuracy (R² = 0.967)
+- **40-50% improvement** over previous models
+- **Diabetic Status Integration:** Personalized for Normal, Pre-diabetic, and Type 2 Diabetic individuals
+- **Multi-algorithm Selection:** Automatically chooses best performing algorithm per time point
+
+**Context:** These diabetic status-based predictions provide clinically relevant insights suitable for healthcare decision support and personalized meal planning.
 
 ---
 

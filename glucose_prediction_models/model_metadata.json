@@ -9,9 +9,16 @@
       "age",
       "gender",
       "bmi",
+      "diabetic_status_encoded",
       "a1c",
       "fasting_glucose",
-      "fasting_insulin"
+      "fasting_insulin",
+      "baseline",
+      "steps_total",
+      "steps_mean_per_minute",
+      "steps_max_per_minute",
+      "active_minutes",
+      "hr_mean"
     ],
     "glucose_60min": [
       "carbohydrates",
@@ -22,9 +29,11 @@
       "age",
       "gender",
       "bmi",
+      "diabetic_status_encoded",
       "a1c",
       "fasting_glucose",
-      "fasting_insulin"
+      "fasting_insulin",
+      "baseline"
     ],
     "glucose_90min": [
       "carbohydrates",
@@ -35,9 +44,11 @@
       "age",
       "gender",
       "bmi",
+      "diabetic_status_encoded",
       "a1c",
       "fasting_glucose",
-      "fasting_insulin"
+      "fasting_insulin",
+      "baseline"
     ],
     "glucose_120min": [
       "carbohydrates",
@@ -48,7 +59,11 @@
       "age",
       "gender",
       "bmi",
-      "a1c"
+      "diabetic_status_encoded",
+      "a1c",
+      "fasting_glucose",
+      "fasting_insulin",
+      "baseline"
     ],
     "glucose_180min": [
       "carbohydrates",
@@ -59,7 +74,11 @@
       "age",
       "gender",
       "bmi",
+      "diabetic_status_encoded",
       "a1c",
+      "fasting_glucose",
+      "fasting_insulin",
+      "baseline",
       "steps_total",
       "steps_mean_per_minute",
       "steps_max_per_minute",
@@ -70,8 +89,9 @@
   "model_info": {
     "glucose_30min": {
       "target": "glucose_30min",
+      "algorithm": "RandomForest",
       "n_samples": 1265,
-      "n_features": 11,
+      "n_features": 18,
       "feature_names": [
         "carbohydrates",
         "protein",
@@ -81,105 +101,143 @@
         "age",
         "gender",
         "bmi",
+        "diabetic_status_encoded",
         "a1c",
         "fasting_glucose",
-        "fasting_insulin"
-      ],
-      "mae": 34.680651161753914,
-      "mae_std": 3.64830138181125,
-      "r2_score": 0.87709253002999,
-      "training_date": "2025-08-11T09:56:32.277453"
-    },
-    "glucose_60min": {
-      "target": "glucose_60min",
-      "n_samples": 1265,
-      "n_features": 11,
-      "feature_names": [
-        "carbohydrates",
-        "protein",
-        "fat",
-        "fiber",
-        "calories",
-        "age",
-        "gender",
-        "bmi",
-        "a1c",
-        "fasting_glucose",
-        "fasting_insulin"
-      ],
-      "mae": 41.27210818890693,
-      "mae_std": 2.289579217196459,
-      "r2_score": 0.876331742410339,
-      "training_date": "2025-08-11T09:56:34.222119"
-    },
-    "glucose_90min": {
-      "target": "glucose_90min",
-      "n_samples": 1265,
-      "n_features": 11,
-      "feature_names": [
-        "carbohydrates",
-        "protein",
-        "fat",
-        "fiber",
-        "calories",
-        "age",
-        "gender",
-        "bmi",
-        "a1c",
-        "fasting_glucose",
-        "fasting_insulin"
-      ],
-      "mae": 40.07908780296473,
-      "mae_std": 2.5046501388612494,
-      "r2_score": 0.8581220418426835,
-      "training_date": "2025-08-11T09:56:36.225105"
-    },
-    "glucose_120min": {
-      "target": "glucose_120min",
-      "n_samples": 1263,
-      "n_features": 9,
-      "feature_names": [
-        "carbohydrates",
-        "protein",
-        "fat",
-        "fiber",
-        "calories",
-        "age",
-        "gender",
-        "bmi",
-        "a1c"
-      ],
-      "mae": 38.506118818361,
-      "mae_std": 4.295606585495667,
-      "r2_score": 0.8563532414561984,
-      "training_date": "2025-08-11T09:56:38.002522"
-    },
-    "glucose_180min": {
-      "target": "glucose_180min",
-      "n_samples": 1263,
-      "n_features": 14,
-      "feature_names": [
-        "carbohydrates",
-        "protein",
-        "fat",
-        "fiber",
-        "calories",
-        "age",
-        "gender",
-        "bmi",
-        "a1c",
+        "fasting_insulin",
+        "baseline",
         "steps_total",
         "steps_mean_per_minute",
         "steps_max_per_minute",
         "active_minutes",
         "hr_mean"
       ],
-      "mae": 37.224545165629074,
-      "mae_std": 3.9133742627236647,
-      "r2_score": 0.936669903533358,
-      "training_date": "2025-08-11T09:56:41.164585"
+      "mae": 19.64708730739702,
+      "rmse": 25.863791324718964,
+      "r2_score": 0.6059420891151633,
+      "cv_mae": 19.012380210648686,
+      "training_date": "2025-08-12T15:43:59.587418"
+    },
+    "glucose_60min": {
+      "target": "glucose_60min",
+      "algorithm": "RandomForest",
+      "n_samples": 1265,
+      "n_features": 13,
+      "feature_names": [
+        "carbohydrates",
+        "protein",
+        "fat",
+        "fiber",
+        "calories",
+        "age",
+        "gender",
+        "bmi",
+        "diabetic_status_encoded",
+        "a1c",
+        "fasting_glucose",
+        "fasting_insulin",
+        "baseline"
+      ],
+      "mae": 22.622591201793437,
+      "rmse": 29.937218513437163,
+      "r2_score": 0.646380722099901,
+      "cv_mae": 21.361438823310664,
+      "training_date": "2025-08-12T15:44:00.567734"
+    },
+    "glucose_90min": {
+      "target": "glucose_90min",
+      "algorithm": "RandomForest",
+      "n_samples": 1265,
+      "n_features": 13,
+      "feature_names": [
+        "carbohydrates",
+        "protein",
+        "fat",
+        "fiber",
+        "calories",
+        "age",
+        "gender",
+        "bmi",
+        "diabetic_status_encoded",
+        "a1c",
+        "fasting_glucose",
+        "fasting_insulin",
+        "baseline"
+      ],
+      "mae": 20.778262612074595,
+      "rmse": 28.519164284078276,
+      "r2_score": 0.6904750961367863,
+      "cv_mae": 22.24093598556172,
+      "training_date": "2025-08-12T15:44:01.584967"
+    },
+    "glucose_120min": {
+      "target": "glucose_120min",
+      "algorithm": "RandomForest",
+      "n_samples": 1263,
+      "n_features": 13,
+      "feature_names": [
+        "carbohydrates",
+        "protein",
+        "fat",
+        "fiber",
+        "calories",
+        "age",
+        "gender",
+        "bmi",
+        "diabetic_status_encoded",
+        "a1c",
+        "fasting_glucose",
+        "fasting_insulin",
+        "baseline"
+      ],
+      "mae": 20.303904894226047,
+      "rmse": 27.30299377672546,
+      "r2_score": 0.6697803857464192,
+      "cv_mae": 21.00489313521138,
+      "training_date": "2025-08-12T15:44:02.589860"
+    },
+    "glucose_180min": {
+      "target": "glucose_180min",
+      "algorithm": "RandomForest",
+      "n_samples": 1263,
+      "n_features": 18,
+      "feature_names": [
+        "carbohydrates",
+        "protein",
+        "fat",
+        "fiber",
+        "calories",
+        "age",
+        "gender",
+        "bmi",
+        "diabetic_status_encoded",
+        "a1c",
+        "fasting_glucose",
+        "fasting_insulin",
+        "baseline",
+        "steps_total",
+        "steps_mean_per_minute",
+        "steps_max_per_minute",
+        "active_minutes",
+        "hr_mean"
+      ],
+      "mae": 18.82889467060566,
+      "rmse": 26.15382597725097,
+      "r2_score": 0.6198868156526711,
+      "cv_mae": 19.78192500989571,
+      "training_date": "2025-08-12T15:44:03.831938"
     }
   },
+  "baseline_predictor_info": {
+    "mae": 3.258991098445565,
+    "r2": 0.9667892248256091
+  },
   "pipeline_version": "2.0.0",
-  "created_date": "2025-08-11T09:56:41.164597"
+  "enhancements": [
+    "Diabetic status integration",
+    "Enhanced baseline prediction",
+    "Improved feature engineering",
+    "Multi-algorithm selection"
+  ],
+  "created_date": "2025-08-12T15:44:04.028456"
 }
