@@ -579,7 +579,17 @@ def main():
     protein = st.sidebar.slider("Protein (g)", 0, 80, preset["protein"])  
     fat = st.sidebar.slider("Fat (g)", 0, 50, preset["fat"])
     fiber = st.sidebar.slider("Fiber (g)", 0, 20, preset["fiber"])
-    calories = st.sidebar.slider("Total Calories", 0, 1000, preset["calories"])
+    
+    # Calculate calories automatically based on macronutrients
+    # Standard conversion: Carbs = 4 cal/g, Protein = 4 cal/g, Fat = 9 cal/g, Fiber = 2 cal/g
+    calculated_calories = (carbohydrates * 4) + (protein * 4) + (fat * 9) + (fiber * 2)
+    
+    # Display calculated calories (read-only)
+    st.sidebar.metric("Calculated Calories", f"{calculated_calories:.0f} cal", 
+                     help="Automatically calculated: Carbs(4) + Protein(4) + Fat(9) + Fiber(2) calories per gram")
+    
+    # Use calculated calories for predictions
+    calories = calculated_calories
     
     # Activity level (optional)
     with st.sidebar.expander("🏃 Activity Level (Optional)"):
