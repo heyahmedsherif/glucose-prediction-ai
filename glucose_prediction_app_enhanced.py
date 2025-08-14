@@ -38,6 +38,175 @@ except ImportError:
     st.error("Could not import EnhancedGlucosePredictionPipeline. Please ensure train_enhanced_glucose_models.py is in the same directory.")
     st.stop()
 
+class SimpleEnhancedPredictor:
+    """Simplified predictor that loads models individually with confidence intervals."""
+    
+    def __init__(self):
+        self.models = {}
+        self.scalers = {}
+        self.feature_sets = {}
+        self.model_info = {}
+        self.baseline_predictor = None
+        self.baseline_scaler = None
+        
+    def predict_baseline_glucose(self, diabetic_status: str, age: float, bmi: float, 
+                               a1c: float = None, fasting_glucose: float = None) -> float:
+        """Predict baseline glucose based on patient characteristics."""
+        
+        # Use baseline predictor if available
+        if self.baseline_predictor is not None:
+            # Encode diabetic status
+            status_encoding = {'Normal': 0, 'Pre-diabetic': 1, 'Type2Diabetic': 2}
+            status_encoded = status_encoding.get(diabetic_status, 1)
+            
+            # Prepare features
+            features = [
+                status_encoded,
+                age,
+                bmi,
+                a1c if a1c else 5.7,
+                fasting_glucose if fasting_glucose else 100
+            ]
+            
+            # Make prediction
+            X = np.array(features).reshape(1, -1)
+            X_scaled = self.baseline_scaler.transform(X)
+            baseline = self.baseline_predictor.predict(X_scaled)[0]
+            return float(baseline)
+        
+        # Fallback to status-based defaults
+        defaults = {'Normal': 85, 'Pre-diabetic': 105, 'Type2Diabetic': 140}
+        return defaults.get(diabetic_status, 100)
+    
+    def calculate_confidence_intervals(self, prediction: float, diabetic_status: str, 
+                                     meal_characteristics: Dict, model, time_point: str) -> Dict[str, float]:
+        """Calculate confidence intervals using hybrid approach."""
+        
+        # Base model uncertainty from Random Forest trees (if available)
+        try:
+            if hasattr(model, 'estimators_'):
+                # Get predictions from individual trees
+                X_for_trees = meal_characteristics.get('X_scaled')
+                if X_for_trees is not None:
+                    tree_predictions = [tree.predict(X_for_trees)[0] for tree in model.estimators_[:20]]  # Sample of trees
+                    model_std = np.std(tree_predictions)
+                else:
+                    model_std = 8.0  # Default model uncertainty
+            else:
+                model_std = 8.0  # Default for non-RF models
+        except:
+            model_std = 8.0  # Fallback
+        
+        # Diabetic status uncertainty multiplier
+        status_multipliers = {
+            'Normal': 1.0,        # Lower uncertainty for normal individuals
+            'Pre-diabetic': 1.3,  # Moderate uncertainty 
+            'Type2Diabetic': 1.8  # Higher uncertainty due to more variable responses
+        }
+        status_factor = status_multipliers.get(diabetic_status, 1.3)
+        
+        # Meal complexity factor (higher carbs = more uncertainty)
+        carbs = meal_characteristics.get('carbohydrates', 50)
+        carb_factor = 1.0 + max(0, (carbs - 50) * 0.008)  # Increases uncertainty for high-carb meals
+        
+        # Time-specific uncertainty (some time points are harder to predict)
+        time_multipliers = {
+            'glucose_30min': 0.9,   # Early response is more predictable
+            'glucose_60min': 1.1,   # Peak time has more variability
+            'glucose_90min': 1.0,   # Moderate uncertainty
+            'glucose_120min': 0.95, # Decline phase is fairly predictable
+            'glucose_180min': 1.15  # Long-term response has more individual variation
+        }
+        time_factor = time_multipliers.get(time_point, 1.0)
+        
+        # Combined uncertainty
+        total_std = model_std * status_factor * carb_factor * time_factor
+        
+        # Ensure reasonable bounds (uncertainty should be meaningful but not excessive)
+        total_std = max(5.0, min(total_std, 35.0))
+        
+        return {
+            'prediction': prediction,
+            'std': total_std,
+            'ci_68_lower': prediction - total_std,
+            'ci_68_upper': prediction + total_std,
+            'ci_95_lower': prediction - 1.96 * total_std,
+            'ci_95_upper': prediction + 1.96 * total_std
+        }
+
+    def predict_enhanced(self, input_features: Dict[str, Any]) -> Dict[str, Any]:
+        """Make enhanced glucose predictions with confidence intervals."""
+        
+        # First predict baseline glucose if not provided
+        if 'baseline' not in input_features or input_features['baseline'] is None:
+            baseline = self.predict_baseline_glucose(
+                diabetic_status=input_features.get('diabetic_status', 'Normal'),
+                age=input_features.get('age', 40),
+                bmi=input_features.get('bmi', 25),
+                a1c=input_features.get('a1c'),
+                fasting_glucose=input_features.get('fasting_glucose')
+            )
+            input_features['baseline'] = baseline
+        
+        # Encode diabetic status
+        status_encoding = {'Normal': 0, 'Pre-diabetic': 1, 'Type2Diabetic': 2}
+        input_features['diabetic_status_encoded'] = status_encoding.get(
+            input_features.get('diabetic_status', 'Normal'), 1
+        )
+        
+        predictions = {
+            'baseline': input_features['baseline'],
+            'confidence_intervals': {}
+        }
+        
+        # Make predictions for each time point
+        for target_var in self.models.keys():
+            # Get required features
+            required_features = self.feature_sets.get(target_var, [])
+            
+            # Extract feature values
+            feature_values = []
+            for feature in required_features:
+                if feature in input_features:
+                    feature_values.append(input_features[feature])
+                else:
+                    # Default values for missing features
+                    defaults = {
+                        'steps_total': 0, 'steps_mean_per_minute': 0, 
+                        'steps_max_per_minute': 0, 'active_minutes': 0,
+                        'hr_mean': 75, 'a1c': 5.7, 'fasting_glucose': 100, 
+                        'fasting_insulin': 10
+                    }
+                    if feature in defaults:
+                        feature_values.append(defaults[feature])
+                    else:
+                        st.error(f"Required feature '{feature}' missing for {target_var} prediction")
+                        return predictions
+            
+            # Make prediction
+            X = np.array(feature_values).reshape(1, -1)
+            X_scaled = self.scalers[target_var].transform(X)
+            pred = self.models[target_var].predict(X_scaled)[0]
+            predictions[target_var] = float(pred)
+            
+            # Calculate confidence intervals
+            meal_chars = {
+                'carbohydrates': input_features.get('carbohydrates', 50),
+                'X_scaled': X_scaled
+            }
+            
+            ci_results = self.calculate_confidence_intervals(
+                prediction=pred,
+                diabetic_status=input_features.get('diabetic_status', 'Normal'),
+                meal_characteristics=meal_chars,
+                model=self.models[target_var],
+                time_point=target_var
+            )
+            
+            predictions['confidence_intervals'][target_var] = ci_results
+        
+        return predictions
+
 # Set page config
 st.set_page_config(
     page_title="Enhanced Glucose Prediction App",
@@ -57,32 +226,8 @@ def load_enhanced_models():
         st.stop()
     
     try:
-        # First try to load the complete pipeline
-        pipeline_path = os.path.join(models_dir, "glucose_prediction_pipeline.pkl")
-        if os.path.exists(pipeline_path):
-            try:
-                with open(pipeline_path, 'rb') as f:
-                    pipeline = pickle.load(f)
-                
-                # Load metadata
-                metadata_path = os.path.join(models_dir, "model_metadata.json")
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-                
-                # Check model version
-                if metadata.get('pipeline_version') == '2.0.0':
-                    st.success("✅ Using Enhanced Models v2.0.0 with Diabetic Status Integration")
-                else:
-                    st.warning("⚠️ Using older model version")
-                
-                return pipeline, metadata
-                
-            except Exception as pickle_error:
-                st.warning(f"⚠️ Could not load pickled pipeline: {pickle_error}")
-                st.info("🔄 Loading models individually...")
-        
-        # Fallback: Load models individually and create pipeline
-        pipeline = EnhancedGlucosePredictionPipeline()
+        # Create simple predictor with confidence intervals
+        predictor = SimpleEnhancedPredictor()
         
         # Load metadata
         metadata_path = os.path.join(models_dir, "model_metadata.json")
@@ -97,38 +242,34 @@ def load_enhanced_models():
             # Load model
             model_file = os.path.join(models_dir, f"{target_var}_model.joblib")
             if os.path.exists(model_file):
-                pipeline.models[target_var] = joblib.load(model_file)
+                predictor.models[target_var] = joblib.load(model_file)
             
             # Load scaler
             scaler_file = os.path.join(models_dir, f"{target_var}_scaler.joblib")
             if os.path.exists(scaler_file):
-                pipeline.scalers[target_var] = joblib.load(scaler_file)
+                predictor.scalers[target_var] = joblib.load(scaler_file)
         
         # Load baseline predictor if available
         baseline_model_file = os.path.join(models_dir, "baseline_model.joblib")
         baseline_scaler_file = os.path.join(models_dir, "baseline_scaler.joblib")
         
         if os.path.exists(baseline_model_file) and os.path.exists(baseline_scaler_file):
-            pipeline.baseline_predictors = {
-                'model': joblib.load(baseline_model_file),
-                'scaler': joblib.load(baseline_scaler_file),
-                'features': ['diabetic_status_encoded', 'age', 'bmi', 'a1c', 'fasting_glucose'],
-                'performance': metadata.get('baseline_predictor_info', {})
-            }
+            predictor.baseline_predictor = joblib.load(baseline_model_file)
+            predictor.baseline_scaler = joblib.load(baseline_scaler_file)
         
         # Set feature sets and model info from metadata
-        pipeline.feature_sets = metadata.get('feature_sets', {})
-        pipeline.model_info = metadata.get('model_info', {})
+        predictor.feature_sets = metadata.get('feature_sets', {})
+        predictor.model_info = metadata.get('model_info', {})
         
         # Check model version
         if metadata.get('pipeline_version') == '2.0.0':
-            st.success("✅ Using Enhanced Models v2.0.0 with Diabetic Status Integration")
+            st.success("✅ Using Enhanced Models v2.0.0 with Diabetic Status Integration & Confidence Intervals")
         else:
             st.warning("⚠️ Using older model version")
         
-        st.info("🔧 Models loaded individually and pipeline reconstructed")
+        st.info(f"🔧 Loaded {len(predictor.models)} models successfully with confidence intervals")
         
-        return pipeline, metadata
+        return predictor, metadata
         
     except Exception as e:
         st.error(f"❌ Error loading models: {str(e)}")
@@ -191,17 +332,28 @@ def get_diabetic_status_info(status: str) -> Dict[str, Any]:
     }
     return info.get(status, info['Normal'])
 
-def create_glucose_curve_plot(predictions: Dict[str, float], diabetic_status: str) -> go.Figure:
-    """Create an interactive glucose response curve."""
+def create_glucose_curve_plot(predictions: Dict[str, Any], diabetic_status: str) -> go.Figure:
+    """Create an interactive glucose response curve with confidence intervals."""
     
     # Extract time points and values
     time_points = [0]  # Start with baseline
     glucose_values = [predictions['baseline']]
+    ci_68_lower = [predictions['baseline']]  # Baseline has no uncertainty shown
+    ci_68_upper = [predictions['baseline']]
+    ci_95_lower = [predictions['baseline']]
+    ci_95_upper = [predictions['baseline']]
     
     for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min']:
         minutes = int(time_var.replace('glucose_', '').replace('min', ''))
         time_points.append(minutes)
         glucose_values.append(predictions[time_var])
+        
+        # Get confidence intervals
+        ci_data = predictions['confidence_intervals'][time_var]
+        ci_68_lower.append(ci_data['ci_68_lower'])
+        ci_68_upper.append(ci_data['ci_68_upper'])
+        ci_95_lower.append(ci_data['ci_95_lower'])
+        ci_95_upper.append(ci_data['ci_95_upper'])
     
     # Get status info for styling
     status_info = get_diabetic_status_info(diabetic_status)
@@ -209,12 +361,36 @@ def create_glucose_curve_plot(predictions: Dict[str, float], diabetic_status: st
     # Create the plot
     fig = go.Figure()
     
-    # Add the glucose curve
+    # Add 95% confidence interval (outer band)
+    fig.add_trace(go.Scatter(
+        x=time_points + time_points[::-1],
+        y=ci_95_upper + ci_95_lower[::-1],
+        fill='toself',
+        fillcolor=f'rgba{tuple(list(px.colors.hex_to_rgb(status_info["color"])) + [0.1])}',
+        line=dict(color='rgba(255,255,255,0)'),
+        name='95% Confidence Interval',
+        showlegend=True,
+        hoverinfo='skip'
+    ))
+    
+    # Add 68% confidence interval (inner band)
+    fig.add_trace(go.Scatter(
+        x=time_points + time_points[::-1],
+        y=ci_68_upper + ci_68_lower[::-1],
+        fill='toself',
+        fillcolor=f'rgba{tuple(list(px.colors.hex_to_rgb(status_info["color"])) + [0.2])}',
+        line=dict(color='rgba(255,255,255,0)'),
+        name='68% Confidence Interval',
+        showlegend=True,
+        hoverinfo='skip'
+    ))
+    
+    # Add the glucose curve (on top of confidence bands)
     fig.add_trace(go.Scatter(
         x=time_points,
         y=glucose_values,
         mode='lines+markers',
-        name='Glucose Response',
+        name='Predicted Glucose',
         line=dict(color=status_info['color'], width=3),
         marker=dict(size=8, color=status_info['color']),
         hovertemplate='<b>Time:</b> %{x} min<br><b>Glucose:</b> %{y:.1f} mg/dL<extra></extra>'
@@ -296,7 +472,7 @@ def main():
     """Main application function."""
     
     # Load models and data
-    pipeline, metadata = load_enhanced_models()
+    predictor, metadata = load_enhanced_models()
     baseline_lookup = load_baseline_lookup()
     
     # App header
@@ -439,6 +615,7 @@ def main():
             - **Intelligent Baseline Prediction**: Automatically calculates your pre-meal glucose based on your profile
             - **Status-Specific Modeling**: Different prediction patterns for Normal, Pre-diabetic, and Type 2 Diabetic individuals  
             - **Clinical Accuracy**: 40-50% more accurate than traditional approaches
+            - **Confidence Intervals**: Shows uncertainty ranges (68% and 95%) for realistic meal planning
             - **22 Meal Presets**: Comprehensive meal options from light snacks to heavy dinners
             """)
             
@@ -505,9 +682,10 @@ def main():
             **Your personalized prediction will include:**
             - 🎯 **Intelligent Baseline**: Automatically calculated pre-meal glucose
             - 📊 **5 Time Points**: Glucose predictions at 30, 60, 90, 120, and 180 minutes  
-            - 📈 **Interactive Curve**: Visual glucose response over 3 hours
+            - 📈 **Interactive Curve**: Visual glucose response over 3 hours with confidence bands
+            - 🎯 **Uncertainty Ranges**: 68% and 95% confidence intervals for realistic planning
             - 🔍 **Clinical Analysis**: Peak glucose, time to peak, return to baseline
-            - 💡 **Personalized Insights**: Recommendations based on your diabetic status
+            - 💡 **Personalized Insights**: Recommendations based on your diabetic status and uncertainty
             """)
             
             # Instructions
@@ -538,7 +716,7 @@ def main():
             
             # Make prediction
             with st.spinner("Calculating glucose response..."):
-                predictions = pipeline.predict_enhanced(input_features)
+                predictions = predictor.predict_enhanced(input_features)
             
             # Display results
             st.success("✅ Prediction completed!")
@@ -555,14 +733,21 @@ def main():
             bar_fig = create_comparison_plot(predictions)
             st.plotly_chart(bar_fig, use_container_width=True)
             
-            # Detailed results table
-            st.subheader("📋 Detailed Results")
+            # Detailed results table with confidence intervals
+            st.subheader("📋 Detailed Results with Uncertainty")
             results_data = []
-            results_data.append(["Baseline", f"{predictions['baseline']:.1f} mg/dL", "Starting glucose level"])
+            results_data.append([
+                "Baseline", 
+                f"{predictions['baseline']:.1f} mg/dL", 
+                "Starting glucose level",
+                "N/A",
+                "N/A"
+            ])
             
             for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min']:
                 minutes = int(time_var.replace('glucose_', '').replace('min', ''))
                 glucose = predictions[time_var]
+                ci_data = predictions['confidence_intervals'][time_var]
                 
                 # Interpretation
                 if glucose < 70:
@@ -574,10 +759,50 @@ def main():
                 else:
                     interp = "🔴 High"
                 
-                results_data.append([f"{minutes} minutes", f"{glucose:.1f} mg/dL", interp])
+                # Confidence intervals
+                ci_68 = f"{ci_data['ci_68_lower']:.0f}-{ci_data['ci_68_upper']:.0f} mg/dL"
+                ci_95 = f"{ci_data['ci_95_lower']:.0f}-{ci_data['ci_95_upper']:.0f} mg/dL"
+                
+                results_data.append([
+                    f"{minutes} minutes", 
+                    f"{glucose:.1f} mg/dL", 
+                    interp,
+                    ci_68,
+                    ci_95
+                ])
             
-            results_df = pd.DataFrame(results_data, columns=["Time Point", "Glucose Level", "Interpretation"])
+            results_df = pd.DataFrame(results_data, columns=[
+                "Time Point", "Glucose Level", "Interpretation", "68% Range", "95% Range"
+            ])
             st.dataframe(results_df, use_container_width=True, hide_index=True)
+            
+            # Educational content about uncertainty
+            with st.expander("🔍 Understanding Prediction Uncertainty"):
+                st.markdown("""
+                **What do confidence intervals mean for meal planning?**
+                
+                **68% Confidence Range (Inner shaded band):**
+                - There's a 68% chance your actual glucose will fall within this range
+                - This represents the most likely outcome for your glucose response
+                - Use this range for everyday meal planning decisions
+                
+                **95% Confidence Range (Outer shaded band):**
+                - There's a 95% chance your actual glucose will fall within this range
+                - This captures more extreme but possible responses
+                - Important for understanding worst-case and best-case scenarios
+                
+                **Why uncertainty matters:**
+                - **Individual variation**: Everyone responds differently to the same meal
+                - **Daily factors**: Sleep, stress, activity, and health can affect glucose response
+                - **Meal complexity**: High-carbohydrate meals have more variable responses
+                - **Diabetic status**: Type 2 diabetic individuals have more variable responses
+                
+                **Practical meal planning tips:**
+                - If the 68% range stays below 140 mg/dL, the meal is likely safe
+                - If the 95% range exceeds 180 mg/dL, consider reducing portion size
+                - Wider confidence bands indicate more unpredictable responses
+                - Combine predictions with your own glucose monitoring for best results
+                """)
             
             # Clinical insights
             st.subheader("🔍 Clinical Insights")

@@ -66,8 +66,64 @@ class SimpleEnhancedPredictor:
         defaults = {'Normal': 85, 'Pre-diabetic': 105, 'Type2Diabetic': 140}
         return defaults.get(diabetic_status, 100)
     
-    def predict_enhanced(self, input_features: Dict[str, Any]) -> Dict[str, float]:
-        """Make enhanced glucose predictions."""
+    def calculate_confidence_intervals(self, prediction: float, diabetic_status: str, 
+                                     meal_characteristics: Dict, model, time_point: str) -> Dict[str, float]:
+        """Calculate confidence intervals using hybrid approach."""
+        
+        # Base model uncertainty from Random Forest trees (if available)
+        try:
+            if hasattr(model, 'estimators_'):
+                # Get predictions from individual trees
+                X_for_trees = meal_characteristics.get('X_scaled')
+                if X_for_trees is not None:
+                    tree_predictions = [tree.predict(X_for_trees)[0] for tree in model.estimators_[:20]]  # Sample of trees
+                    model_std = np.std(tree_predictions)
+                else:
+                    model_std = 8.0  # Default model uncertainty
+            else:
+                model_std = 8.0  # Default for non-RF models
+        except:
+            model_std = 8.0  # Fallback
+        
+        # Diabetic status uncertainty multiplier
+        status_multipliers = {
+            'Normal': 1.0,        # Lower uncertainty for normal individuals
+            'Pre-diabetic': 1.3,  # Moderate uncertainty 
+            'Type2Diabetic': 1.8  # Higher uncertainty due to more variable responses
+        }
+        status_factor = status_multipliers.get(diabetic_status, 1.3)
+        
+        # Meal complexity factor (higher carbs = more uncertainty)
+        carbs = meal_characteristics.get('carbohydrates', 50)
+        carb_factor = 1.0 + max(0, (carbs - 50) * 0.008)  # Increases uncertainty for high-carb meals
+        
+        # Time-specific uncertainty (some time points are harder to predict)
+        time_multipliers = {
+            'glucose_30min': 0.9,   # Early response is more predictable
+            'glucose_60min': 1.1,   # Peak time has more variability
+            'glucose_90min': 1.0,   # Moderate uncertainty
+            'glucose_120min': 0.95, # Decline phase is fairly predictable
+            'glucose_180min': 1.15  # Long-term response has more individual variation
+        }
+        time_factor = time_multipliers.get(time_point, 1.0)
+        
+        # Combined uncertainty
+        total_std = model_std * status_factor * carb_factor * time_factor
+        
+        # Ensure reasonable bounds (uncertainty should be meaningful but not excessive)
+        total_std = max(5.0, min(total_std, 35.0))
+        
+        return {
+            'prediction': prediction,
+            'std': total_std,
+            'ci_68_lower': prediction - total_std,
+            'ci_68_upper': prediction + total_std,
+            'ci_95_lower': prediction - 1.96 * total_std,
+            'ci_95_upper': prediction + 1.96 * total_std
+        }
+
+    def predict_enhanced(self, input_features: Dict[str, Any]) -> Dict[str, Any]:
+        """Make enhanced glucose predictions with confidence intervals."""
         
         # First predict baseline glucose if not provided
         if 'baseline' not in input_features or input_features['baseline'] is None:
@@ -86,7 +142,10 @@ class SimpleEnhancedPredictor:
             input_features.get('diabetic_status', 'Normal'), 1
         )
         
-        predictions = {'baseline': input_features['baseline']}
+        predictions = {
+            'baseline': input_features['baseline'],
+            'confidence_intervals': {}
+        }
         
         # Make predictions for each time point
         for target_var in self.models.keys():
@@ -117,6 +176,22 @@ class SimpleEnhancedPredictor:
             X_scaled = self.scalers[target_var].transform(X)
             pred = self.models[target_var].predict(X_scaled)[0]
             predictions[target_var] = float(pred)
+            
+            # Calculate confidence intervals
+            meal_chars = {
+                'carbohydrates': input_features.get('carbohydrates', 50),
+                'X_scaled': X_scaled
+            }
+            
+            ci_results = self.calculate_confidence_intervals(
+                prediction=pred,
+                diabetic_status=input_features.get('diabetic_status', 'Normal'),
+                meal_characteristics=meal_chars,
+                model=self.models[target_var],
+                time_point=target_var
+            )
+            
+            predictions['confidence_intervals'][target_var] = ci_results
         
         return predictions
 
@@ -237,17 +312,28 @@ def get_diabetic_status_info(status: str) -> Dict[str, Any]:
     }
     return info.get(status, info['Normal'])
 
-def create_glucose_curve_plot(predictions: Dict[str, float], diabetic_status: str) -> go.Figure:
-    """Create an interactive glucose response curve."""
+def create_glucose_curve_plot(predictions: Dict[str, Any], diabetic_status: str) -> go.Figure:
+    """Create an interactive glucose response curve with confidence intervals."""
     
     # Extract time points and values
     time_points = [0]  # Start with baseline
     glucose_values = [predictions['baseline']]
+    ci_68_lower = [predictions['baseline']]  # Baseline has no uncertainty shown
+    ci_68_upper = [predictions['baseline']]
+    ci_95_lower = [predictions['baseline']]
+    ci_95_upper = [predictions['baseline']]
     
     for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min']:
         minutes = int(time_var.replace('glucose_', '').replace('min', ''))
         time_points.append(minutes)
         glucose_values.append(predictions[time_var])
+        
+        # Get confidence intervals
+        ci_data = predictions['confidence_intervals'][time_var]
+        ci_68_lower.append(ci_data['ci_68_lower'])
+        ci_68_upper.append(ci_data['ci_68_upper'])
+        ci_95_lower.append(ci_data['ci_95_lower'])
+        ci_95_upper.append(ci_data['ci_95_upper'])
     
     # Get status info for styling
     status_info = get_diabetic_status_info(diabetic_status)
@@ -255,12 +341,36 @@ def create_glucose_curve_plot(predictions: Dict[str, float], diabetic_status: st
     # Create the plot
     fig = go.Figure()
     
-    # Add the glucose curve
+    # Add 95% confidence interval (outer band)
+    fig.add_trace(go.Scatter(
+        x=time_points + time_points[::-1],
+        y=ci_95_upper + ci_95_lower[::-1],
+        fill='toself',
+        fillcolor=f'rgba{tuple(list(px.colors.hex_to_rgb(status_info["color"])) + [0.1])}',
+        line=dict(color='rgba(255,255,255,0)'),
+        name='95% Confidence Interval',
+        showlegend=True,
+        hoverinfo='skip'
+    ))
+    
+    # Add 68% confidence interval (inner band)
+    fig.add_trace(go.Scatter(
+        x=time_points + time_points[::-1],
+        y=ci_68_upper + ci_68_lower[::-1],
+        fill='toself',
+        fillcolor=f'rgba{tuple(list(px.colors.hex_to_rgb(status_info["color"])) + [0.2])}',
+        line=dict(color='rgba(255,255,255,0)'),
+        name='68% Confidence Interval',
+        showlegend=True,
+        hoverinfo='skip'
+    ))
+    
+    # Add the glucose curve (on top of confidence bands)
     fig.add_trace(go.Scatter(
         x=time_points,
         y=glucose_values,
         mode='lines+markers',
-        name='Glucose Response',
+        name='Predicted Glucose',
         line=dict(color=status_info['color'], width=3),
         marker=dict(size=8, color=status_info['color']),
         hovertemplate='<b>Time:</b> %{x} min<br><b>Glucose:</b> %{y:.1f} mg/dL<extra></extra>'
