@@ -565,7 +565,7 @@ def main():
     
     for method_key, method_name in method_options.items():
         if st.sidebar.checkbox(method_name, 
-                              value=(method_key in ["mean", "upper_ci"]),
+                              value=(method_key == "mean"),  # Only mean selected by default
                               key=f"spike_{method_key}"):
             spike_methods.append(method_key)
     
