@@ -282,7 +282,8 @@ class CorrectedGlucosePrediction:
             # Add components for UI compatibility (simplified)
             'timing_component': fiber_effectiveness * 0.3,  # Approximate timing component
             'dawn_component': fiber_effectiveness * 0.2 if timing_inputs['meal_type'] == 'breakfast' else 0,
-            'first_meal_component': fiber_effectiveness * 0.1 if timing_inputs['is_first_meal'] else 0
+            'first_meal_component': fiber_effectiveness * 0.1 if timing_inputs['is_first_meal'] else 0,
+            'effectiveness_percentage': min(100, (fiber_effectiveness / meal_inputs['fiber']) * 100) if meal_inputs['fiber'] > 0 else 0
         }
         
         return predictions
