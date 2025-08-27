@@ -431,151 +431,7 @@ class CorrectedGlucosePrediction:
         
         return max(min_fiber, min(max_fiber, base_fiber))
     
-    def calculate_fiber_effectiveness(self, fiber_amount: float, carbs: float, 
-                                    meal_type: str, hour: int, is_first_meal: bool,
-                                    diabetic_status: str, previous_fiber: float = 0) -> Dict[str, float]:
-        """Calculate comprehensive fiber effectiveness with saturation modeling."""
-        
-        profile = self.fiber_response_profiles[diabetic_status]
-        
-        # 1. Base fiber effectiveness with saturation curve
-        if fiber_amount <= profile['saturation_point']:
-            base_effectiveness = fiber_amount * profile['base_sensitivity']
-        else:
-            # Diminishing returns after saturation point
-            base_effectiveness = (profile['saturation_point'] * profile['base_sensitivity'] + 
-                                (fiber_amount - profile['saturation_point']) * profile['base_sensitivity'] * 0.3)
-        
-        # 2. Fiber-carb ratio bonus/penalty
-        fiber_carb_ratio = fiber_amount / (carbs + 0.1)
-        
-        if fiber_carb_ratio > 0.2:
-            ratio_multiplier = 1.0 + (fiber_carb_ratio - 0.2) * profile['ratio_importance']
-        elif fiber_carb_ratio < 0.05:
-            ratio_multiplier = 0.5 + (fiber_carb_ratio / 0.05) * 0.5  # Scale from 0.5 to 1.0
-        else:
-            ratio_multiplier = 1.0
-        
-        base_effectiveness *= ratio_multiplier
-        
-        # 3. Timing-specific effectiveness
-        timing_key = self._get_timing_effectiveness_key(meal_type, hour, is_first_meal)
-        timing_multiplier = self.fiber_timing_effectiveness.get(timing_key, 1.0)
-        
-        # Apply timing sensitivity
-        timing_effectiveness = base_effectiveness * timing_multiplier * profile['timing_sensitivity']
-        
-        # 4. Dawn phenomenon fiber effectiveness
-        dawn_effectiveness = 0
-        if meal_type == 'breakfast' and 6 <= hour <= 9:
-            dawn_effectiveness = fiber_amount * 0.8 * profile['dawn_fiber_multiplier']
-        
-        # 5. First meal fiber effectiveness
-        first_meal_effectiveness = 0
-        if is_first_meal:
-            first_meal_effectiveness = fiber_amount * 0.6 * self.fiber_timing_effectiveness['first_meal_bonus']
-        
-        # 6. Sequential meal effect (reduced effectiveness with previous fiber)
-        sequential_penalty = 1.0 - (previous_fiber * 0.02)  # 2% reduction per gram of previous fiber
-        sequential_penalty = max(0.5, sequential_penalty)  # Minimum 50% effectiveness
-        
-        total_effectiveness = (timing_effectiveness + dawn_effectiveness + first_meal_effectiveness) * sequential_penalty
-        
-        return {
-            'total_mg_dl_reduction': min(50, total_effectiveness),  # Cap at 50 mg/dL
-            'timing_component': timing_effectiveness * sequential_penalty,
-            'dawn_component': dawn_effectiveness * sequential_penalty,
-            'first_meal_component': first_meal_effectiveness * sequential_penalty,
-            'fiber_carb_ratio': fiber_carb_ratio,
-            'saturation_level': min(1.0, fiber_amount / profile['saturation_point']),
-            'effectiveness_percentage': min(100, (total_effectiveness / fiber_amount) * 100) if fiber_amount > 0 else 0
-        }
-    
-    def _get_timing_effectiveness_key(self, meal_type: str, hour: int, is_first_meal: bool) -> str:
-        """Get timing effectiveness key for fiber lookup."""
-        
-        if meal_type == 'breakfast':
-            if 6 <= hour <= 9:
-                return 'breakfast_early'
-            else:
-                return 'breakfast_late'
-        elif meal_type == 'lunch':
-            if 12 <= hour <= 14:
-                return 'lunch_optimal'
-            else:
-                return 'lunch_other'
-        else:
-            return 'dinner'
-    
-    def predict_glucose_with_fiber_timing(self, meal_inputs: Dict[str, float], 
-                                        patient_inputs: Dict[str, Any],
-                                        timing_inputs: Dict[str, Any],
-                                        previous_fiber: float = 0) -> Dict[str, float]:
-        """Predict glucose response with advanced fiber-timing integration."""
-        
-        # Calculate baseline with timing
-        baseline = self._predict_baseline_with_timing(
-            patient_inputs['diabetic_status'],
-            patient_inputs['age'],
-            patient_inputs['bmi'],
-            timing_inputs['meal_hour'],
-            timing_inputs['is_first_meal'],
-            patient_inputs.get('a1c'),
-            patient_inputs.get('fasting_glucose')
-        )
-        
-        # Calculate fiber effectiveness
-        fiber_effects = self.calculate_fiber_effectiveness(
-            meal_inputs['fiber'],
-            meal_inputs['carbohydrates'],
-            timing_inputs['meal_type'],
-            timing_inputs['meal_hour'],
-            timing_inputs['is_first_meal'],
-            patient_inputs['diabetic_status'],
-            previous_fiber
-        )
-        
-        # Calculate timing adjustment
-        timing_adjustment = self._calculate_timing_adjustment(
-            timing_inputs['meal_hour'],
-            timing_inputs['meal_type'],
-            timing_inputs['is_first_meal'],
-            patient_inputs['diabetic_status']
-        )
-        
-        # Base glucose predictions
-        predictions = {'baseline': baseline}
-        
-        for minutes in [30, 60, 90, 120, 180]:
-            # Base prediction without fiber
-            base_glucose = self._simplified_prediction(
-                baseline, meal_inputs, patient_inputs, minutes
-            )
-            
-            # Apply timing adjustment
-            excursion = base_glucose - baseline
-            timing_adjusted_excursion = excursion * timing_adjustment
-            
-            # Apply fiber reduction (time-dependent)
-            if minutes <= 60:
-                fiber_reduction_factor = 0.7  # Early fiber effect
-            elif minutes <= 120:
-                fiber_reduction_factor = 1.0  # Peak fiber effect
-            else:
-                fiber_reduction_factor = 0.8  # Sustained fiber effect
-            
-            fiber_reduction = fiber_effects['total_mg_dl_reduction'] * fiber_reduction_factor
-            
-            # Final glucose value
-            final_excursion = max(0, timing_adjusted_excursion - fiber_reduction)
-            final_glucose = baseline + final_excursion
-            
-            predictions[f'glucose_{minutes}min'] = max(70, min(400, final_glucose))
-        
-        # Store fiber effects for display
-        predictions['fiber_effects'] = fiber_effects
-        
-        return predictions
+    # Note: Old methods removed - using corrected versions defined above
     
     def _predict_baseline_with_timing(self, diabetic_status: str, age: float, bmi: float,
                                     meal_hour: int, is_first_meal: bool,
@@ -877,7 +733,7 @@ def create_fiber_effectiveness_chart(fiber_range: range, meal_inputs: Dict[str, 
         temp_meal_inputs = meal_inputs.copy()
         temp_meal_inputs['fiber'] = fiber_amount
         
-        fiber_effects = predictor.calculate_fiber_effectiveness(
+        fiber_effectiveness = predictor.calculate_corrected_fiber_effectiveness(
             fiber_amount,
             meal_inputs['carbohydrates'],
             timing_inputs['meal_type'],
@@ -886,7 +742,7 @@ def create_fiber_effectiveness_chart(fiber_range: range, meal_inputs: Dict[str, 
             patient_inputs['diabetic_status']
         )
         
-        effectiveness_values.append(fiber_effects['total_mg_dl_reduction'])
+        effectiveness_values.append(fiber_effectiveness)
     
     # Create the chart
     fig = go.Figure()
@@ -1079,7 +935,7 @@ def main():
         # Generate predictions
         with st.spinner("🔮 Generating ultimate glucose prediction with fiber optimization..."):
             predictions = predictor.predict_glucose_with_corrected_timing(
-                meal_inputs, patient_inputs, timing_inputs, previous_fiber
+                meal_inputs, patient_inputs, timing_inputs
             )
             
             spike_curves, time_points = predictor.calculate_spike_curves(
