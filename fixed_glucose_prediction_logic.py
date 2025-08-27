@@ -269,10 +269,20 @@ class CorrectedGlucosePrediction:
             predictions[f'glucose_{minutes}min'] = glucose_prediction
         
         # Store effects for display
+        # Store effects for display (compatible with UI expectations)
+        fiber_carb_ratio = meal_inputs['fiber'] / (meal_inputs['carbohydrates'] + 0.1)
+        fiber_profile = self.fiber_response_profiles[patient_inputs['diabetic_status']]
+        saturation_level = min(1.0, meal_inputs['fiber'] / fiber_profile['saturation_point'])
+        
         predictions['fiber_effects'] = {
             'total_mg_dl_reduction': fiber_effectiveness,
             'timing_adjustment': timing_adjustment,
-            'fiber_carb_ratio': meal_inputs['fiber'] / (meal_inputs['carbohydrates'] + 0.1)
+            'fiber_carb_ratio': fiber_carb_ratio,
+            'saturation_level': saturation_level,
+            # Add components for UI compatibility (simplified)
+            'timing_component': fiber_effectiveness * 0.3,  # Approximate timing component
+            'dawn_component': fiber_effectiveness * 0.2 if timing_inputs['meal_type'] == 'breakfast' else 0,
+            'first_meal_component': fiber_effectiveness * 0.1 if timing_inputs['is_first_meal'] else 0
         }
         
         return predictions
