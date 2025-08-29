@@ -177,11 +177,14 @@ class CorrectedGlucosePrediction:
         # CORRECTED: Fiber reduction integrated into base calculation
         fiber_reduction = meal_inputs.get('fiber_effectiveness', 0)
         
-        # Time-based curve
+        # Time-based curve (extended to 240 minutes)
         if minutes <= 60:
             time_multiplier = minutes / 60.0
-        else:
+        elif minutes <= 120:
             time_multiplier = 1.0 - ((minutes - 60) / 120.0)
+        else:
+            # Extended decay for 180-240 minutes
+            time_multiplier = 0.5 - ((minutes - 120) / 240.0)
         time_multiplier = max(0.1, time_multiplier)
         
         # Diabetic status multiplier
@@ -251,14 +254,16 @@ class CorrectedGlucosePrediction:
         
         predictions = {'baseline': baseline}
         
-        for minutes in [30, 60, 90, 120, 180]:
+        for minutes in [30, 60, 90, 120, 180, 240]:
             # Time-dependent fiber effectiveness
             if minutes <= 60:
                 fiber_factor = 0.7  # Early effect
             elif minutes <= 120:
                 fiber_factor = 1.0  # Peak effect
-            else:
+            elif minutes <= 180:
                 fiber_factor = 0.8  # Sustained effect
+            else:
+                fiber_factor = 0.6  # Late sustained effect (240min)
             
             meal_inputs_corrected['fiber_effectiveness'] = fiber_effectiveness * fiber_factor
             

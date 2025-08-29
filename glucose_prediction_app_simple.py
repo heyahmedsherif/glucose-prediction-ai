@@ -323,7 +323,7 @@ def create_glucose_curve_plot(predictions: Dict[str, Any], diabetic_status: str)
     ci_95_lower = [predictions['baseline']]
     ci_95_upper = [predictions['baseline']]
     
-    for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min']:
+    for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min', 'glucose_240min']:
         minutes = int(time_var.replace('glucose_', '').replace('min', ''))
         time_points.append(minutes)
         glucose_values.append(predictions[time_var])
@@ -406,7 +406,7 @@ def create_comparison_plot(predictions: Dict[str, float]) -> go.Figure:
     glucose_values = []
     colors = []
     
-    for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min']:
+    for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min', 'glucose_240min']:
         minutes = int(time_var.replace('glucose_', '').replace('min', ''))
         glucose = predictions[time_var]
         
@@ -670,8 +670,8 @@ def main():
             st.markdown("""
             **Your personalized prediction will include:**
             - 🎯 **Intelligent Baseline**: Automatically calculated pre-meal glucose
-            - 📊 **5 Time Points**: Glucose predictions at 30, 60, 90, 120, and 180 minutes  
-            - 📈 **Interactive Curve**: Visual glucose response over 3 hours
+            - 📊 **6 Time Points**: Glucose predictions at 30, 60, 90, 120, 180, and 240 minutes (4-hour extended view)  
+            - 📈 **Interactive Curve**: Visual glucose response over 4 hours (240 minutes)
             - 🔍 **Clinical Analysis**: Peak glucose, time to peak, return to baseline
             - 💡 **Personalized Insights**: Recommendations based on your diabetic status
             """)
@@ -726,7 +726,7 @@ def main():
             results_data = []
             results_data.append(["Baseline", f"{predictions['baseline']:.1f} mg/dL", "Starting glucose level"])
             
-            for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min']:
+            for time_var in ['glucose_30min', 'glucose_60min', 'glucose_90min', 'glucose_120min', 'glucose_180min', 'glucose_240min']:
                 minutes = int(time_var.replace('glucose_', '').replace('min', ''))
                 glucose = predictions[time_var]
                 
