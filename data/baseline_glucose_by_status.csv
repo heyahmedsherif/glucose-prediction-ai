@@ -1,0 +1,4 @@
+diabetic_status,count,mean,std,min,max
+Normal,449,90.48,5.58,76.3,95.0
+Pre-diabetic,452,111.42,9.11,87.8,125.0
+Type2Diabetic,368,149.73,22.2,98.6,200.0

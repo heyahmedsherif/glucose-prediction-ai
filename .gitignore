@@ -210,28 +210,27 @@ $RECYCLE.BIN/
 *~
 
 # Data files - Large datasets
-comprehensive_cgmacros_dataset.csv
-CGMacros_dateshifted365.zip
-combined_cgmacros_data.csv
+data/comprehensive_cgmacros_dataset.csv
+data/CGMacros_dateshifted365.zip
+data/combined_cgmacros_data.csv
 
 # Generated model files
-glucose_prediction_models/*.joblib
-glucose_prediction_models/*.pkl
-glucose_prediction_models/*.pickle
-*.joblib
-*.pkl
-*.pickle
+models/glucose_prediction_models/*.joblib
+models/glucose_prediction_models/*.pkl
+models/glucose_prediction_models/*.pickle
+models/*.joblib
+models/*.pkl
+models/*.pickle
 
-# Generated images and outputs
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
-*.html
-*.pdf
-!README*.png
+# Generated images and outputs in data folder
+data/*.png
+data/*.jpg
+data/*.jpeg
+data/*.gif
+data/*.svg
+data/*.html
 !docs/*.png
+!docs/*.jpg
 
 # Temporary files
 *.tmp
@@ -245,12 +244,12 @@ glucose_prediction_models/*.pickle
 logs/
 
 # CSV data files (keeping some essential ones)
-*_training_data*.csv
-*_model_results.csv
-*glucose_responses*.csv
-!baseline_glucose_by_status.csv
-!premeal_glucose_analysis.csv
-!diabetic_status_baseline_lookup.csv
+data/*_training_data*.csv
+data/*_model_results.csv
+data/*glucose_responses*.csv
+!data/baseline_glucose_by_status.csv
+!data/premeal_glucose_analysis.csv
+!data/diabetic_status_baseline_lookup.csv
 
 # Large ZIP files
 *.zip
@@ -267,16 +266,17 @@ logs/
 .Spotlight-V100
 
 # Application specific
-run_*.sh
-test_*.py
-*_test.py
-debug_*.py
-showcase_*.py
-demo_*.py
+scripts/run_*.sh
+tests/test_*.py
+tests/*_test.py
+scripts/debug_*.py
+analysis/showcase_*.py
+analysis/demo_*.py
 
 # Backup files
-*_backup.py
-*_copy.*
+backups/*_backup.py
+backups/*_BACKUP*.py
+backups/*_copy.*
 
 # Configuration files that might contain sensitive data
 config.json

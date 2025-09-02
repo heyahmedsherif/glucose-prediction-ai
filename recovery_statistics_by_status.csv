@@ -1,6 +1,0 @@
-,baseline_recovered,baseline_recovered,baseline_recovered,recovery_percentage,recovery_percentage,recovery_percentage,glucose_rise,glucose_rise,recovery_glucose,recovery_glucose
-,count,sum,mean,mean,median,std,mean,median,mean,median
-diabetic_status,,,,,,,,,,
-Normal,1341,1291,0.96,78.09,80.54,13.02,44.2,41.17,91.04,93.0
-Pre-diabetic,1039,972,0.94,82.97,86.98,15.41,65.35,66.33,114.48,112.0
-Type2Diabetic,4655,3804,0.82,76.03,87.08,45.86,87.64,79.17,157.94,149.33

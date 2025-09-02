@@ -1,0 +1,4 @@
+diabetic_status,mean_baseline,std_baseline,min_baseline,max_baseline
+Normal,78.3,6.1,70,95
+Pre-diabetic,95.8,15.2,70,125
+Type2Diabetic,130.1,28.4,95,200
