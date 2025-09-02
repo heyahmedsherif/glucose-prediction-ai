@@ -125,4 +125,12 @@ python tests/test_baseline_return_fix.py
 
 ## 📊 Data Sources
 
-Built on the CGMacros scientific dataset for personalized nutrition and diet monitoring, providing comprehensive glucose response data across different demographic groups and meal compositions.
+Built on the **CGMacros scientific dataset** for personalized nutrition and diet monitoring, providing comprehensive glucose response data across different demographic groups and meal compositions.
+
+### Dataset Citation
+
+This project uses the CGMacros dataset developed by the Phenotype Science Initiative (PSI) at Texas A&M University.
+
+**Original Dataset:** [CGMacros - A scientific dataset for personalized nutrition and diet monitoring](https://github.com/PSI-TAMU/CGMacros)
+
+**Citation:** If you use this system or reference this work, please cite the original CGMacros dataset creators and their research.
