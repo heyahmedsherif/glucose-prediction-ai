@@ -291,3 +291,6 @@ cache/
 # Temporary directories
 tmp/
 temp/
+
+# Claude interaction log
+CLAUDE_LOG.md
